@@ -5,7 +5,8 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy, reverse
 from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin
-
+from django.views import View
+from django.shortcuts import get_object_or_404
 from taxi.forms import DriverLicenseUpdateForm, DriverCreateForm, CarForm
 from taxi.models import Driver, Car, Manufacturer
 
@@ -106,21 +107,13 @@ class DriverUpdateView(LoginRequiredMixin, generic.UpdateView):
     success_url = reverse_lazy("taxi:driver-list")
 
 
-@login_required
-def toggle_assign_to_car(
-        request: HttpRequest,
-        pk: int
-) -> HttpResponse:
-    if request.method == "POST":
-        car = Car.objects.get(pk=pk)
+class ToggleAssignToCarView(LoginRequiredMixin, View):
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        car = get_object_or_404(Car, pk=pk)
         if request.user in car.drivers.all():
             car.drivers.remove(request.user)
         else:
             car.drivers.add(request.user)
         car.save()
-    return HttpResponseRedirect(
-        reverse(
-            "taxi:car-detail",
-            kwargs={"pk": pk}
-        )
-    )
+        return HttpResponseRedirect(reverse(
+            "taxi:car-detail", kwargs={"pk": pk}))
